@@ -2,22 +2,30 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         :root { 
             --bg-dark: #282828; --bg-darker: #1a1a1a; --accent: #0078d4;
             --text-light: #eee; --border-dark: #444; --row-hover: #333;
             --row-active: #094771; --footer-bg: #f5f5f5; --footer-text: #333;
         }
+        * { box-sizing: border-box; }
         body { background: var(--bg-dark); color: var(--text-light); font-family: 'Segoe UI', sans-serif; padding: 0; margin: 0; font-size: 11px; user-select: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        .top-nav { display: flex; gap: 4px; padding: 5px; background: #333; border-bottom: 1px solid var(--border-dark); align-items: center; }
-        .btn-main { background: var(--accent); color: white; border: none; padding: 8px; flex: 1; cursor: pointer; font-weight: bold; border-radius: 2px; }
+        .top-nav { display: flex; gap: 4px; padding: 5px; background: #333; border-bottom: 1px solid var(--border-dark); align-items: center; flex-wrap: wrap; }
+        .btn-main, .btn-action { background: var(--accent); color: white; border: none; padding: 8px; cursor: pointer; font-weight: bold; border-radius: 2px; }
+        .btn-main { flex: 1; min-height: 32px; }
+        .btn-action { background: #444; }
+        .btn-action.active { background: #159447; }
+        
+        .top-nav-row2 { display: flex; gap: 4px; width: 100%; padding: 0 5px 5px 5px; }
+        .top-nav-row2 button { flex: 1; min-height: 36px; font-size: 11px; }
         
         .scale-section { display: flex; align-items: center; background: #444; border-radius: 2px; border: 1px solid #555; height: 28px; padding-right: 5px; }
         .scale-label { font-size: 10px; color: #ccc; padding: 0 8px; }
         .scale-input { background: transparent; border: none; color: white; width: 35px; text-align: center; font-weight: bold; outline: none; }
 
-        textarea#input { width: 100%; height: 80px; background: var(--bg-darker); color: #fff; border: none; border-bottom: 1px solid var(--border-dark); padding: 8px; box-sizing: border-box; resize: none; font-family: 'Consolas', monospace; outline: none; }
+        textarea#input { width: 100%; height: 80px; background: var(--bg-darker); color: #fff; border: none; border-bottom: 1px solid var(--border-dark); padding: 8px; box-sizing: border-box; resize: none; outline: none; }
         
         .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .list-box { flex: 2; overflow-y: auto; background: #222; border-bottom: 2px solid #444; }
@@ -28,32 +36,48 @@
         .style-name { flex: 1; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .edit-icon { color: #aaa; cursor: pointer; padding: 2px 5px; font-size: 12px; }
 
-        .row { display: flex; align-items: center; border-bottom: 1px solid #333; padding: 8px 12px; cursor: pointer; }
+        .row { display: flex; align-items: center; border-bottom: 1px solid #333; padding: 8px 12px; cursor: pointer; min-height: 44px; }
         .row.active { background: var(--row-active); border-left: 3px solid var(--accent); }
         .tag-pill { background: #FFF3B0; color: #333; padding: 0 4px; border-radius: 2px; margin-right: 6px; font-weight: bold; font-size: 9px; }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; padding: 20px; box-sizing: border-box; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .modal-content { background: #333; padding: 15px; border-radius: 4px; border: 1px solid #555; max-height: 95%; overflow-y: auto; color: #fff; }
         .modal-label { font-size: 10px; color: #aaa; font-weight: bold; display: block; margin-top: 10px; }
-        .modal-input, .modal-select { background: #1a1a1a; color: #fff; border: 1px solid #555; padding: 8px; width: 100%; box-sizing: border-box; margin-top: 4px; border-radius: 2px; font-size: 12px; outline: none; }
+        .modal-input, .modal-select { background: #1a1a1a; color: #fff; border: 1px solid #555; padding: 8px; width: 100%; box-sizing: border-box; margin-top: 4px; border-radius: 2px; font-size: 11px; }
+        .color-picker-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+        .color-input { width: 50px; height: 32px; cursor: pointer; border: 1px solid #555; border-radius: 2px; }
 
         .footer { background: var(--footer-bg); padding: 8px; font-size: 10px; color: var(--footer-text); border-top: 1px solid #ccc; text-align: center; font-weight: 500; }
         .footer a { color: var(--accent); text-decoration: none; font-weight: bold; }
+
+        @media (max-width: 600px) {
+            .top-nav { flex-direction: column; }
+            .btn-main { min-height: 42px; }
+            .top-nav-row2 button { min-height: 42px; font-size: 12px; }
+            .row { min-height: 52px; }
+            .style-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body onkeydown="handleGlobalKeys(event)">
     <div class="top-nav">
-        <button class="btn-main" onclick="sendText()">+ Paste & Next</button>
+        <button class="btn-main" onclick="sendText()">+ Yapıştır & Sonraki</button>
         <div class="scale-section">
-            <span class="scale-label">scale:</span>
+            <span class="scale-label">ölçek:</span>
             <input type="number" id="scaleInput" class="scale-input" value="100" oninput="saveData()">
             <span style="color:#ccc;">%</span>
         </div>
-        <button onclick="openAddStyle()" style="background:#444; border:none; color:white; padding:8px; cursor:pointer; border-radius:2px;">➕</button>
-        <button onclick="toggleModal('settingsModal')" style="background:#444; border:none; color:white; padding:8px; cursor:pointer; border-radius:2px;">⚙</button>
+        <button class="btn-action" onclick="openAddStyle()">➕</button>
+        <button class="btn-action" onclick="toggleModal('settingsModal')">⚙</button>
+        <button id="shiftToggle" class="btn-action" onclick="toggleShiftMode()" title="Shift Mode: Toplu seçim için">Shift: ✕</button>
+    </div>
+    
+    <div class="top-nav-row2">
+        <button class="btn-main" onclick="sendTextSequential()" style="background: #159447;">Sırayla Tek Tek Yerleştir</button>
+        <button class="btn-main" onclick="openBulkPlacement()" style="background: #159447;">Toplu Metin Yerleşimi</button>
     </div>
 
-    <textarea id="input" oninput="handleInput()" placeholder="Paste manhwa script here..."></textarea>
+    <textarea id="input" oninput="handleInput()" placeholder="Manhwa script'i buraya yapıştırın..."></textarea>
     
     <div class="main-content">
         <div class="list-box" id="list"></div>
@@ -63,14 +87,14 @@
     <div id="styleModal" class="modal">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px; align-items:center;">
-                <strong id="styleModalTitle">Style Settings</strong>
+                <strong id="styleModalTitle">Stil Ayarları</strong>
                 <button onclick="toggleModal('styleModal')" style="color:#f44; border:none; background:none; cursor:pointer; font-weight:bold; font-size:14px;">✕</button>
             </div>
             <input type="hidden" id="editStyleId">
-            <span class="modal-label">Style Name</span>
-            <input type="text" id="sName" class="modal-input" placeholder="e.g., Narrative">
-            <span class="modal-label">Font Family</span>
-            <input list="fontOptions" id="sFont" class="modal-input" placeholder="Select or type font name...">
+            <span class="modal-label">Stil Adı</span>
+            <input type="text" id="sName" class="modal-input" placeholder="ör. Konuşma">
+            <span class="modal-label">Font Ailesi</span>
+            <input list="fontOptions" id="sFont" class="modal-input" placeholder="Font adını yazın...">
             <datalist id="fontOptions">
                 <option value="CCScoundrel-Regular">CC Scoundrel</option>
                 <option value="CCTallTales-Regular">CC Tall Tales</option>
@@ -82,27 +106,55 @@
                 <option value="BeelzebrushBB">Beelzebrush BB</option>
                 <option value="CCVictorySpeech-Regular">CC Victory Speech</option>
             </datalist>
-            <span class="modal-label">Appearance</span>
+            <span class="modal-label">Görünüm</span>
             <select id="sWeight" class="modal-select">
-                <option value="Regular">Regular</option>
-                <option value="Bold">Forced Bold</option>
-                <option value="Italic">Forced Italic</option>
-                <option value="Bold Italic">Forced Bold Italic</option>
+                <option value="Regular">Normal</option>
+                <option value="Bold">Kalın (Bold)</option>
+                <option value="Italic">Eğik (Italic)</option>
+                <option value="Bold Italic">Kalın Eğik</option>
             </select>
-            <span class="modal-label">Case (Capitalization)</span>
+            <span class="modal-label">Harf Büyüklüğü</span>
             <select id="sCase" class="modal-select">
-                <option value="none">Normal (As typed)</option>
-                <option value="uppercase">ALL CAPS</option>
+                <option value="none">Olduğu Gibi</option>
+                <option value="uppercase">TÜM BÜYÜK</option>
             </select>
-            <span class="modal-label">Leading / Line Spacing (%)</span>
-            <input type="number" id="sLeading" class="modal-input" placeholder="Standard: 120" value="120">
-            <span class="modal-label">Base Size (px)</span>
+            <span class="modal-label">Satır Aralığı (%)</span>
+            <input type="number" id="sLeading" class="modal-input" placeholder="Standart: 120" value="120">
+            <span class="modal-label">Temel Boyut (px)</span>
             <input type="number" id="sSize" class="modal-input" value="50">
-            <span class="modal-label">Prefixes (Separate with commas)</span>
+            <span class="modal-label">Prefixler (Virgülle ayırın)</span>
             <input type="text" id="sPrefix" class="modal-input" placeholder='"": , ():'>
+            
+            <span class="modal-label">Metin Rengi</span>
+            <div class="color-picker-row">
+                <input type="color" id="sTextColor" class="color-input" value="#ffffff" oninput="updateColorPreview('sTextColor', 'textColorHex')">
+                <input type="text" id="textColorHex" class="modal-input" value="#ffffff" style="flex: 1;" placeholder="#FFFFFF">
+            </div>
+            
+            <span class="modal-label">Metin Kontur Rengi</span>
+            <div class="color-picker-row">
+                <input type="color" id="sStrokeColor" class="color-input" value="#000000" oninput="updateColorPreview('sStrokeColor', 'strokeColorHex')">
+                <input type="text" id="strokeColorHex" class="modal-input" value="#000000" style="flex: 1;" placeholder="#000000">
+            </div>
+
             <div style="margin-top:20px; display:flex; flex-direction:column; gap:8px;">
-                <button style="background:var(--accent); color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:2px;" onclick="saveStyle()">SAVE STYLE</button>
-                <button style="background:#f44; color:white; border:none; padding:8px; cursor:pointer; font-weight:bold; border-radius:2px; display:none;" id="btnDelStyle" onclick="deleteStyle()">DELETE STYLE</button>
+                <button style="background:var(--accent); color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:2px;" onclick="saveStyle()">STİLİ KAYDET</button>
+                <button style="background:#f44; color:white; border:none; padding:8px; cursor:pointer; font-weight:bold; border-radius:2px; display:none;" id="btnDelStyle" onclick="deleteStyle()">STİLİ SİL</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bulkModal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; align-items:center;">
+                <strong>Toplu Metin Yerleşimi</strong>
+                <button onclick="toggleModal('bulkModal')" style="color:#f44; border:none; background:none; cursor:pointer; font-weight:bold; font-size:14px;">✕</button>
+            </div>
+            <p style="color:#bdf4cb;">Seçili metinler sırayla Photopea'da yerleştirilecek. Toplu işlem başlatmak için butona basın.</p>
+            <div id="bulkList" style="max-height:50vh; overflow-y:auto; margin:10px 0;"></div>
+            <div style="display:flex; gap:8px; margin-top:15px;">
+                <button style="flex:1; background:var(--accent); color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:2px;" onclick="confirmBulkPlacement()">Toplu Yerleşimi Yap</button>
+                <button style="flex:1; background:#555; color:white; border:none; padding:12px; cursor:pointer; border-radius:2px;" onclick="toggleModal('bulkModal')">İptal</button>
             </div>
         </div>
     </div>
@@ -110,28 +162,71 @@
     <div id="settingsModal" class="modal">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                <strong>Settings</strong>
+                <strong>Ayarlar</strong>
                 <button onclick="toggleModal('settingsModal')" style="color:#f44; border:none; background:none; cursor:pointer; font-weight:bold;">✕</button>
             </div>
             <div style="display:flex; gap:5px; margin-bottom:15px;">
-                <button onclick="exportJSON()" style="flex:1; padding:10px; background:#444; color:white; border:none; cursor:pointer; border-radius:2px;">Export JSON</button>
-                <button onclick="document.getElementById('importFile').click()" style="flex:1; padding:10px; background:#444; color:white; border:none; cursor:pointer; border-radius:2px;">Import JSON</button>
+                <button onclick="exportJSON()" style="flex:1; padding:10px; background:#444; color:white; border:none; cursor:pointer; border-radius:2px;">JSON Dışa Aktar</button>
+                <button onclick="document.getElementById('importFile').click()" style="flex:1; padding:10px; background:#444; color:white; border:none; cursor:pointer; border-radius:2px;">JSON İçe Aktar</button>
             </div>
             <input type="file" id="importFile" style="display:none" onchange="importJSON(event)">
-            <label class="modal-label">Tags to Ignore</label>
+            <label class="modal-label">Yoksay Edilecek Tag'ler</label>
             <textarea id="ignoreTags" class="modal-input" style="height:100px;" oninput="saveSettings()"></textarea>
-            <button onclick="if(confirm('Delete all plugin data?')){localStorage.clear(); location.reload();}" style="background:#f44; color:white; border:none; padding:8px; width:100%; cursor:pointer; font-size:10px; margin-top:15px; border-radius:2px;">RESET ALL DATA</button>
+            <button onclick="if(confirm('Tüm eklenti verisi silinecek?')){localStorage.clear(); location.reload();}" style="background:#f44; color:white; border:none; padding:8px; width:100%; cursor:pointer; margin-top:10px; border-radius:2px;">Tümünü Sil</button>
         </div>
     </div>
 
     <div class="footer">
-        typer for photopea | v5.1 | inspired by <a href="https://typer.hayasaku.fr" target="_blank">typer.hayasaku.fr</a>
-        <div style="font-size:9px; color:#888; margin-top:2px;">Example style, download here: <a href="https://github.com/shadow-id-pixel/plugin-typer" target="_blank">github.com/shadow-id-pixel/plugin-typer</a></div>
+        typer for photopea | v6.0 | <a href="https://typer.hayasaku.fr" target="_blank">typer.hayasaku.fr</a>
+        <div style="font-size:9px; color:#888; margin-top:2px;"><a href="https://github.com/Asena-nim/plugin-typer" target="_blank">github.com/Asena-nim/plugin-typer</a></div>
     </div>
 
     <script>
         let selectedIndex = -1, activeStyleId = null, filteredLines = [], styles = [];
+        let shiftMode = false;
+        let selectedLines = [];
+        
         const DEFAULT_TAGS = "SFX:\nSfx:\nsfx:\nSFX\nSfx\nsfx\n##\nHalaman\nPage\n---\npage\n===\nP1\nP2\n[1]\nPg.\nPAGE\n=0\n--";
+
+        // Türkçe Heceleme
+        const turkishHyphenationRules = {
+            vowels: /[aeıioöuü]/i,
+            consonants: /[bcçdfgğhjklmnprsştvyz]/i
+        };
+
+        function hyphenateText(text) {
+            if (!text || text.length < 4) return text;
+            
+            let result = '';
+            let lastWasVowel = false;
+            
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                let isVowel = turkishHyphenationRules.vowels.test(char);
+                
+                if (i > 0 && !lastWasVowel && isVowel && turkishHyphenationRules.consonants.test(text[i-1])) {
+                    result += '-' + char;
+                } else {
+                    result += char;
+                }
+                lastWasVowel = isVowel;
+            }
+            
+            return result;
+        }
+
+        function updateColorPreview(colorInputId, hexInputId) {
+            const colorInput = document.getElementById(colorInputId);
+            const hexInput = document.getElementById(hexInputId);
+            hexInput.value = colorInput.value.toUpperCase();
+        }
+
+        function toggleShiftMode() {
+            shiftMode = !shiftMode;
+            const btn = document.getElementById('shiftToggle');
+            btn.textContent = shiftMode ? 'Shift: ✓' : 'Shift: ✕';
+            btn.className = shiftMode ? 'btn-action active' : 'btn-action';
+        }
 
         function handleGlobalKeys(e) {
             if (e.ctrlKey && (e.metaKey || e.key === "Meta" || e.code.includes("Meta"))) {
@@ -150,8 +245,9 @@
             localStorage.setItem('typer_main_text', document.getElementById('input').value);
             localStorage.setItem('typer_scale', document.getElementById('scaleInput').value);
             localStorage.setItem('typer_styles', JSON.stringify(styles));
-            localStorage.setItem('typer_active_style', activeStyleId);
+            localStorage.setItem('typer_active_style', activeStyleId || '');
             localStorage.setItem('ignoreTags', document.getElementById('ignoreTags').value);
+            localStorage.setItem('typer_selected_lines', JSON.stringify(selectedLines));
         }
 
         function saveSettings() { saveData(); renderLines(); }
@@ -163,13 +259,14 @@
                 const item = document.createElement('div');
                 item.className = `style-item ${activeStyleId == s.id ? 'active' : ''}`;
                 item.onclick = () => { activeStyleId = s.id; renderStyleGrid(); saveData(); };
-                item.innerHTML = `<div class="style-name">${s.name}</div><span class="edit-icon" onclick="event.stopPropagation(); openEditStyle('${s.id}')">✎</span>`;
+                const colorBox = `<div style="width:16px; height:16px; background:${s.textColor || '#fff'}; border:1px solid ${s.strokeColor || '#000'}; border-radius:2px; margin-right:6px;"></div>`;
+                item.innerHTML = `${colorBox}<div class="style-name">${s.name}</div><span class="edit-icon" onclick="event.stopPropagation(); openEditStyle('${s.id}')">✎</span>`;
                 grid.appendChild(item);
             });
         }
 
         function openAddStyle() {
-            document.getElementById('styleModalTitle').innerText = "Add New Style";
+            document.getElementById('styleModalTitle').innerText = "Yeni Stil Ekle";
             document.getElementById('editStyleId').value = "";
             document.getElementById('sName').value = "";
             document.getElementById('sFont').value = "";
@@ -178,6 +275,10 @@
             document.getElementById('sLeading').value = 120;
             document.getElementById('sSize').value = 50;
             document.getElementById('sPrefix').value = "";
+            document.getElementById('sTextColor').value = "#ffffff";
+            document.getElementById('textColorHex').value = "#ffffff";
+            document.getElementById('sStrokeColor').value = "#000000";
+            document.getElementById('strokeColorHex').value = "#000000";
             document.getElementById('btnDelStyle').style.display = "none";
             toggleModal('styleModal');
         }
@@ -185,7 +286,7 @@
         function openEditStyle(id) {
             const s = styles.find(x => x.id == id);
             if(!s) return;
-            document.getElementById('styleModalTitle').innerText = "Edit Style";
+            document.getElementById('styleModalTitle').innerText = "Stili Düzenle";
             document.getElementById('editStyleId').value = s.id;
             document.getElementById('sName').value = s.name;
             document.getElementById('sFont').value = s.font;
@@ -194,6 +295,10 @@
             document.getElementById('sLeading').value = s.leading || 120;
             document.getElementById('sSize').value = s.size;
             document.getElementById('sPrefix').value = (s.prefixes || []).join(", ");
+            document.getElementById('sTextColor').value = s.textColor || "#ffffff";
+            document.getElementById('textColorHex').value = s.textColor || "#ffffff";
+            document.getElementById('sStrokeColor').value = s.strokeColor || "#000000";
+            document.getElementById('strokeColorHex').value = s.strokeColor || "#000000";
             document.getElementById('btnDelStyle').style.display = "block";
             toggleModal('styleModal');
         }
@@ -202,13 +307,15 @@
             const id = document.getElementById('editStyleId').value;
             const newStyle = {
                 id: id || Date.now().toString(),
-                name: document.getElementById('sName').value || "Unnamed",
+                name: document.getElementById('sName').value || "Adsız",
                 font: document.getElementById('sFont').value || "Arial",
                 weight: document.getElementById('sWeight').value,
                 case: document.getElementById('sCase').value,
                 leading: parseFloat(document.getElementById('sLeading').value) || 120,
                 size: parseInt(document.getElementById('sSize').value) || 50,
-                prefixes: document.getElementById('sPrefix').value.split(",").map(x => x.trim()).filter(x => x !== "")
+                prefixes: document.getElementById('sPrefix').value.split(",").map(x => x.trim()).filter(x => x !== ""),
+                textColor: document.getElementById('sTextColor').value || "#ffffff",
+                strokeColor: document.getElementById('sStrokeColor').value || "#000000"
             };
             if(id) {
                 const idx = styles.findIndex(x => x.id == id);
@@ -242,7 +349,11 @@
                 const row = document.createElement('div');
                 row.className = `row ${selectedIndex === idx ? 'active' : ''}`;
                 row.id = 'row-' + idx;
-                row.innerHTML = `<span class="num">${idx + 1}</span><span style="flex:1;">${detectedPrefix ? `<span class="tag-pill">${detectedPrefix}</span>` : ""}${line.trim().replace(detectedPrefix, "").trim()}</span>`;
+                
+                let displayText = line.trim().replace(detectedPrefix, '').trim();
+                let hyphendText = hyphenateText(displayText);
+                
+                row.innerHTML = `<span class="num">${idx + 1}</span><span style="flex:1;">${detectedPrefix ? `<span class="tag-pill">${detectedPrefix}</span>` : ""}${hyphendText}</span>`;
                 row.onclick = () => selectRow(idx);
                 list.appendChild(row);
             });
@@ -258,10 +369,69 @@
             saveData();
         }
 
-        function sendText() {
+        function toggleLineSelection(index) {
+            const pos = selectedLines.indexOf(index);
+            if (pos >= 0) {
+                selectedLines.splice(pos, 1);
+            } else {
+                selectedLines.push(index);
+            }
+            renderLines();
+            saveData();
+        }
+
+        function openBulkPlacement() {
+            if (selectedLines.length === 0) {
+                alert('Önce metinleri seçmelisiniz. Metinlere tıklayarak seçim yapın.');
+                return;
+            }
+            
+            let html = '';
+            selectedLines.forEach((idx, i) => {
+                const line = filteredLines[idx];
+                let style = styles.find(s => s.id == activeStyleId) || { name: 'Varsayılan' };
+                html += `<div style="background:#444; padding:8px; margin-bottom:5px; border-radius:2px; border-left:4px solid ${style.textColor || '#fff'};">
+                    <strong>${i + 1}. ${line.trim()}</strong>
+                    <div style="color:#bdf4cb; font-size:9px; margin-top:3px;">Stil: ${style.name}</div>
+                </div>`;
+            });
+            
+            document.getElementById('bulkList').innerHTML = html;
+            toggleModal('bulkModal');
+        }
+
+        function confirmBulkPlacement() {
+            toggleModal('bulkModal');
+            bulkSend(selectedLines.slice(), 0);
+        }
+
+        function bulkSend(queue, pos) {
+            if (pos >= queue.length) {
+                selectedLines = [];
+                renderLines();
+                alert('Toplu yerleşim tamamlandı!');
+                return;
+            }
+
+            selectedIndex = queue[pos];
+            sendText(false);
+            setTimeout(() => bulkSend(queue, pos + 1), 150);
+        }
+
+        function sendTextSequential() {
             if(selectedIndex === -1 || !filteredLines[selectedIndex]) return;
+            sendText(true);
+        }
+
+        function sendText(moveNext = true) {
+            if(selectedIndex === -1 || !filteredLines[selectedIndex]) return;
+            
             const scale = (parseFloat(document.getElementById('scaleInput').value) || 100) / 100;
-            const style = styles.find(s => s.id == activeStyleId) || { font: "Arial", size: 50, weight: "Regular", case: "none", leading: 120 };
+            const style = styles.find(s => s.id == activeStyleId) || { 
+                font: "Arial", size: 50, weight: "Regular", case: "none", leading: 120,
+                textColor: "#ffffff", strokeColor: "#000000"
+            };
+            
             let raw = filteredLines[selectedIndex].trim();
             let prefix = (style.prefixes || []).find(p => raw.startsWith(p)) || "";
             let text = raw.replace(prefix, "").trim();
@@ -272,6 +442,19 @@
             for (let i = 0; i < w.length; i++) {
                 s += w[i] + " "; if ((i + 1) % 3 === 0 && i !== w.length - 1) s += "\\r";
             }
+
+            // Hex to RGB conversion
+            function hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : {r: 255, g: 255, b: 255};
+            }
+
+            const textColorRgb = hexToRgb(style.textColor || "#ffffff");
+            const strokeColorRgb = hexToRgb(style.strokeColor || "#000000");
 
             const ppea = `
                 var doc = app.activeDocument;
@@ -284,7 +467,6 @@
                 ti.size = ${style.size * scale};
                 ti.justification = Justification.CENTER;
 
-                // FIX: Disable Auto Leading and force manual calculation
                 try { 
                     ti.useAutoLeading = false; 
                     ti.leading = ${style.size * (style.leading / 100) * scale}; 
@@ -293,18 +475,45 @@
                 var wStyle = "${style.weight}";
                 if(wStyle.indexOf("Bold") != -1) { try { ti.fauxBold = true; } catch(e) {} }
                 if(wStyle.indexOf("Italic") != -1) { try { ti.fauxItalic = true; } catch(e) {} }
+                
+                // Metin Rengi
+                var textColor = new RGBColor();
+                textColor.red = ${textColorRgb.r};
+                textColor.green = ${textColorRgb.g};
+                textColor.blue = ${textColorRgb.b};
+                ti.color = textColor;
+
+                // Kontur Rengi (Stroke)
+                try {
+                    var strokeColor = new RGBColor();
+                    strokeColor.red = ${strokeColorRgb.r};
+                    strokeColor.green = ${strokeColorRgb.g};
+                    strokeColor.blue = ${strokeColorRgb.b};
+                    layer.strokeColor = strokeColor;
+                } catch(e) {}
+
                 if (sel) { ti.position = [(sel[0] + sel[2]) / 2, (sel[1] + sel[3]) / 2]; }
                 else { ti.position = [doc.width / 2, doc.height / 2]; }
             `;
+            
             window.parent.postMessage(ppea, "*");
-            setTimeout(() => selectRow(selectedIndex + 1), 50); 
+            
+            if (moveNext && shiftMode === false) {
+                setTimeout(() => selectRow(selectedIndex + 1), 50);
+            }
         }
 
         function exportJSON() {
-            const data = { styles, ignoreLinePrefixes: document.getElementById('ignoreTags').value.split('\n') };
+            const data = { 
+                styles, 
+                ignoreLinePrefixes: document.getElementById('ignoreTags').value.split('\n'),
+                version: "6.0"
+            };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob); a.download = 'typer_styles.json'; a.click();
+            a.href = URL.createObjectURL(blob); 
+            a.download = 'typer_settings.json'; 
+            a.click();
         }
 
         function importJSON(e) {
@@ -321,19 +530,22 @@
                             case: s.case || "none",
                             leading: s.leading || 120,
                             size: s.size || 50,
-                            prefixes: s.prefixes || []
+                            prefixes: s.prefixes || [],
+                            textColor: s.textColor || "#ffffff",
+                            strokeColor: s.strokeColor || "#000000"
                         }));
                     }
                     if (data.ignoreLinePrefixes) document.getElementById('ignoreTags').value = data.ignoreLinePrefixes.join("\n");
-                    saveData(); renderStyleGrid(); renderLines(); alert("Import Success!");
-                } catch(err) { alert("Error!"); }
+                    saveData(); renderStyleGrid(); renderLines(); alert("İçe aktarma başarılı!");
+                } catch(err) { alert("Hata! Dosya kontrolü yapın."); console.error(err); }
             };
             reader.readAsText(e.target.files[0]);
         }
 
         window.onload = () => {
-            styles = JSON.parse(localStorage.getItem('typer_styles')) || [];
-            activeStyleId = localStorage.getItem('typer_active_style');
+            styles = JSON.parse(localStorage.getItem('typer_styles') || '[]');
+            activeStyleId = localStorage.getItem('typer_active_style') || null;
+            selectedLines = JSON.parse(localStorage.getItem('typer_selected_lines') || '[]');
             document.getElementById('ignoreTags').value = localStorage.getItem('ignoreTags') || DEFAULT_TAGS;
             document.getElementById('input').value = localStorage.getItem('typer_main_text') || "";
             document.getElementById('scaleInput').value = localStorage.getItem('typer_scale') || "100";
@@ -342,4 +554,3 @@
     </script>
 </body>
 </html>
-

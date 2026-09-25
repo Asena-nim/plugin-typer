@@ -56,6 +56,8 @@
         .asset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 10px; }
         .asset-item { background: #444; border: 1px solid #555; border-radius: 4px; padding: 6px; }
         .asset-item img { width: 100%; height: 64px; object-fit: cover; border-radius: 2px; }
+        .asset-actions { display: flex; gap: 4px; margin-top: 6px; }
+        .asset-actions button { flex: 1; font-size: 9px; padding: 5px 4px; border: none; border-radius: 2px; cursor: pointer; color: white; }
 
         .footer { background: var(--footer-bg); padding: 8px; font-size: 10px; color: var(--footer-text); border-top: 1px solid #ccc; text-align: center; font-weight: 500; }
         .footer a { color: var(--accent); text-decoration: none; font-weight: bold; }
@@ -151,6 +153,11 @@
                 <input type="text" id="strokeColorHex" class="modal-input" value="#000000" style="flex: 1;" placeholder="#000000">
             </div>
 
+            <span class="modal-label">Kayıtlı Logo</span>
+            <select id="styleLogoAsset" class="modal-select"></select>
+            <span class="modal-label">Kayıtlı Desen</span>
+            <select id="stylePatternAsset" class="modal-select"></select>
+
             <div style="margin-top:20px; display:flex; flex-direction:column; gap:8px;">
                 <button style="background:var(--accent); color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:2px;" onclick="saveStyle()">STİLİ KAYDET</button>
                 <button style="background:#f44; color:white; border:none; padding:8px; cursor:pointer; font-weight:bold; border-radius:2px; display:none;" id="btnDelStyle" onclick="deleteStyle()">STİLİ SİL</button>
@@ -190,7 +197,7 @@
                 <strong>Logo / Desen Yöneticisi</strong>
                 <button onclick="toggleModal('assetModal')" style="color:#f44; border:none; background:none; cursor:pointer; font-weight:bold; font-size:14px;">✕</button>
             </div>
-            <input type="file" id="assetInput" accept="image/png,image/jpg,image/jpeg,image/webp" multiple style="display:none" onchange="handleAssetUpload(event)">
+            <input type="file" id="assetInput" accept="image/png,image/jpg,image/jpeg,image/webp,image/pdf" multiple style="display:none" onchange="handleAssetUpload(event)">
             <div style="display:flex; gap:8px; margin-bottom:8px;">
                 <button class="btn-main" onclick="document.getElementById('assetInput').click()">Görsel Seç</button>
             </div>
@@ -281,7 +288,7 @@
     </div>
 
     <div class="footer">
-        typer for photopea | v6.1 | <a href="https://typer.hayasaku.fr" target="_blank">typer.hayasaku.fr</a>
+        typer for photopea | v6.2 | <a href="https://typer.hayasaku.fr" target="_blank">typer.hayasaku.fr</a>
         <div style="font-size:9px; color:#888; margin-top:2px;"><a href="https://github.com/Asena-nim/plugin-typer" target="_blank">github.com/Asena-nim/plugin-typer</a></div>
     </div>
 
@@ -298,6 +305,8 @@
         ];
 
         const DEFAULT_TAGS = "SFX:\nSfx:\nsfx:\nSFX\nSfx\nsfx\n##\nHalaman\nPage\n---\npage\n===\nP1\nP2\n[1]\nPg.\nPAGE\n=0\n--";
+        const DB_NAME = 'typer-assets-db';
+        const DB_VERSION = 1;
 
         const turkishHyphenationRules = { vowels: /[aeıioöuü]/i, consonants: /[bcçdfgğhjklmnprsştvyz]/i };
 
@@ -360,7 +369,8 @@
             return {
                 id: '', name: 'Varsayılan', font: 'Arial', weight: 'Regular', case: 'none', leading: 120, size: 50,
                 prefixes: [], textColor: '#ffffff', strokeColor: '#000000', opacity: 100, shadow: 0, blur: 0,
-                wave: 0, warp: 0, bend: 0, gradientMode: 'none', gradientColors: ['#ffffff','#000000','#6ec5ff','#ff7f50']
+                wave: 0, warp: 0, bend: 0, gradientMode: 'none', gradientColors: ['#ffffff','#000000','#6ec5ff','#ff7f50'],
+                logoAssetId: '', patternAssetId: ''
             };
         }
 
@@ -377,28 +387,59 @@
             });
         }
 
+        function populateAssetSelects() {
+            const logoSelect = document.getElementById('styleLogoAsset');
+            const patternSelect = document.getElementById('stylePatternAsset');
+            const currentStyle = styles.find(s => s.id == activeStyleId) || styles[0];
+            const selectedLogo = currentStyle ? currentStyle.logoAssetId || '' : '';
+            const selectedPattern = currentStyle ? currentStyle.patternAssetId || '' : '';
+
+            const assets = getAssetListSync();
+            const options = ['<option value="">(yok)</option>']
+                .concat(assets.map(a => `<option value="${a.id}">${a.name}</option>`))
+                .join('');
+            logoSelect.innerHTML = options;
+            patternSelect.innerHTML = options;
+            logoSelect.value = selectedLogo;
+            patternSelect.value = selectedPattern;
+        }
+
+        function getAssetListSync() {
+            try {
+                return JSON.parse(localStorage.getItem('typer_asset_cache') || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function setAssetListSync(list) {
+            localStorage.setItem('typer_asset_cache', JSON.stringify(list));
+        }
+
         function openAddStyle() {
-            document.getElementById('styleModalTitle').innerText = "Yeni Stil Ekle";
-            document.getElementById('editStyleId').value = "";
-            document.getElementById('sName').value = "";
-            document.getElementById('sFont').value = "";
-            document.getElementById('sWeight').value = "Regular";
-            document.getElementById('sCase').value = "none";
+            document.getElementById('styleModalTitle').innerText = 'Yeni Stil Ekle';
+            document.getElementById('editStyleId').value = '';
+            document.getElementById('sName').value = '';
+            document.getElementById('sFont').value = '';
+            document.getElementById('sWeight').value = 'Regular';
+            document.getElementById('sCase').value = 'none';
             document.getElementById('sLeading').value = 120;
             document.getElementById('sSize').value = 50;
-            document.getElementById('sPrefix').value = "";
-            document.getElementById('sTextColor').value = "#ffffff";
-            document.getElementById('textColorHex').value = "#ffffff";
-            document.getElementById('sStrokeColor').value = "#000000";
-            document.getElementById('strokeColorHex').value = "#000000";
-            document.getElementById('btnDelStyle').style.display = "none";
+            document.getElementById('sPrefix').value = '';
+            document.getElementById('sTextColor').value = '#ffffff';
+            document.getElementById('textColorHex').value = '#ffffff';
+            document.getElementById('sStrokeColor').value = '#000000';
+            document.getElementById('strokeColorHex').value = '#000000';
+            document.getElementById('styleLogoAsset').value = '';
+            document.getElementById('stylePatternAsset').value = '';
+            document.getElementById('btnDelStyle').style.display = 'none';
             toggleModal('styleModal');
         }
 
         function openEditStyle(id) {
             const s = styles.find(x => x.id == id);
             if(!s) return;
-            document.getElementById('styleModalTitle').innerText = "Stili Düzenle";
+            document.getElementById('styleModalTitle').innerText = 'Stili Düzenle';
             document.getElementById('editStyleId').value = s.id;
             document.getElementById('sName').value = s.name;
             document.getElementById('sFont').value = s.font;
@@ -411,12 +452,17 @@
             document.getElementById('textColorHex').value = s.textColor || '#ffffff';
             document.getElementById('sStrokeColor').value = s.strokeColor || '#000000';
             document.getElementById('strokeColorHex').value = s.strokeColor || '#000000';
+            document.getElementById('styleLogoAsset').value = s.logoAssetId || '';
+            document.getElementById('stylePatternAsset').value = s.patternAssetId || '';
             document.getElementById('btnDelStyle').style.display = 'block';
+            populateAssetSelects();
             toggleModal('styleModal');
         }
 
         function saveStyle() {
             const id = document.getElementById('editStyleId').value;
+            const logoAssetId = document.getElementById('styleLogoAsset').value || '';
+            const patternAssetId = document.getElementById('stylePatternAsset').value || '';
             const newStyle = {
                 id: id || Date.now().toString(),
                 name: document.getElementById('sName').value || 'Adsız',
@@ -435,7 +481,9 @@
                 warp: 0,
                 bend: 0,
                 gradientMode: 'none',
-                gradientColors: ['#ffffff', '#000000', '#6ec5ff', '#ff7f50']
+                gradientColors: ['#ffffff', '#000000', '#6ec5ff', '#ff7f50'],
+                logoAssetId,
+                patternAssetId
             };
             if(id) {
                 const idx = styles.findIndex(x => x.id == id);
@@ -484,6 +532,7 @@
             const line = filteredLines[index].trim();
             styles.forEach(s => { if((s.prefixes || []).some(p => line.startsWith(p))) activeStyleId = s.id; });
             renderStyleGrid(); renderLines();
+            populateAssetSelects();
             document.getElementById('row-' + index)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             saveData();
         }
@@ -535,6 +584,38 @@
             sendText(true);
         }
 
+        function buildAssetPlacementScript(style, asset) {
+            if (!asset || !asset.dataUrl) return '';
+            const assetUrl = JSON.stringify(asset.dataUrl);
+            const insertMode = asset.kind === 'logo' ? 'logo' : 'pattern';
+            const targetSize = insertMode === 'logo' ? 220 : 100;
+            const parentName = insertMode === 'logo' ? 'logoLayer' : 'patternLayer';
+            return `
+                try {
+                    var assetData = ${assetUrl};
+                    var assetDoc = app.open(new File(assetData));
+                    var sourceLayer = assetDoc.activeLayer;
+                    var targetLayer = sourceLayer.duplicate(doc, ElementPlacement.PLACEATEND);
+                    if (targetLayer.bounds) {
+                        var b = targetLayer.bounds;
+                        var w = b[2] - b[0];
+                        var h = b[3] - b[1];
+                        var scale = ${targetSize} / Math.max(w, h);
+                        targetLayer.resize(scale * 100, scale * 100, AnchorPosition.MIDDLECENTER);
+                        if (typeof targetLayer.translate !== 'undefined') {
+                            targetLayer.translate(doc.width * 0.7 - (b[2]-b[0]) * 0.5, doc.height * 0.2);
+                        }
+                    }
+                    assetDoc.close(SaveOptions.DONOTSAVECHANGES);
+                } catch(e) {
+                    try {
+                        var __msg = 'Asset fallback: ' + ${JSON.stringify(asset.name)};
+                        alert(__msg);
+                    } catch(err) {}
+                }
+            `;
+        }
+
         function sendText(moveNext = true) {
             if(selectedIndex === -1 || !filteredLines[selectedIndex]) return;
 
@@ -543,7 +624,8 @@
                 font: 'Arial', size: 50, weight: 'Regular', case: 'none', leading: 120,
                 textColor: '#ffffff', strokeColor: '#000000', opacity: 100,
                 shadow: 0, blur: 0, wave: 0, warp: 0, bend: 0, gradientMode: 'none',
-                gradientColors: ['#ffffff', '#000000', '#6ec5ff', '#ff7f50']
+                gradientColors: ['#ffffff', '#000000', '#6ec5ff', '#ff7f50'],
+                logoAssetId: '', patternAssetId: ''
             };
 
             let raw = filteredLines[selectedIndex].trim();
@@ -563,6 +645,13 @@
 
             const textColorRgb = hexToRgb(style.textColor || '#ffffff');
             const strokeColorRgb = hexToRgb(style.strokeColor || '#000000');
+
+            let assetScript = '';
+            const assetList = getAssetListSync();
+            const logoAsset = assetList.find(x => x.id === style.logoAssetId);
+            const patternAsset = assetList.find(x => x.id === style.patternAssetId);
+            if (logoAsset) assetScript += buildAssetPlacementScript(style, logoAsset);
+            if (patternAsset) assetScript += buildAssetPlacementScript(style, patternAsset);
 
             const ppea = `
                 var doc = app.activeDocument;
@@ -595,14 +684,10 @@
                 } catch(e) {}
 
                 try { layer.opacity = ${(style.opacity || 100)}; } catch(e) {}
-                try { if (Number(${style.shadow || 0}) > 0) { layer.shadow = Number(${style.shadow || 0}); } } catch(e) {}
-                try { if (Number(${style.blur || 0}) > 0) { layer.blur = Number(${style.blur || 0}); } } catch(e) {}
-                try { if (Number(${style.wave || 0}) > 0) { layer.distort = Number(${style.wave || 0}); } } catch(e) {}
-                try { if (Number(${style.warp || 0}) > 0) { layer.warp = Number(${style.warp || 0}); } } catch(e) {}
-                try { if (Number(${style.bend || 0}) != 0) { layer.bend = Number(${style.bend || 0}); } } catch(e) {}
-
                 if (sel) { ti.position = [(sel[0] + sel[2]) / 2, (sel[1] + sel[3]) / 2]; }
                 else { ti.position = [doc.width / 2, doc.height / 2]; }
+
+                ${assetScript}
             `;
 
             window.parent.postMessage(ppea, '*');
@@ -617,7 +702,7 @@
                 styles,
                 ignoreLinePrefixes: document.getElementById('ignoreTags').value.split('\n'),
                 fontLibrary,
-                version: '6.1'
+                version: '6.2'
             };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
@@ -648,11 +733,13 @@
                             warp: s.warp || 0,
                             bend: s.bend || 0,
                             gradientMode: s.gradientMode || 'none',
-                            gradientColors: s.gradientColors || ['#ffffff','#000000','#6ec5ff','#ff7f50']
+                            gradientColors: s.gradientColors || ['#ffffff','#000000','#6ec5ff','#ff7f50'],
+                            logoAssetId: s.logoAssetId || '',
+                            patternAssetId: s.patternAssetId || ''
                         }));
                     }
                     if (data.fontLibrary) fontLibrary = data.fontLibrary;
-                    if (data.ignoreLinePrefixes) document.getElementById('ignoreTags').value = data.ignoreLinePrefixes.join("\n");
+                    if (data.ignoreLinePrefixes) document.getElementById('ignoreTags').value = data.ignoreLinePrefixes.join('\n');
                     saveData(); renderStyleGrid(); renderLines(); alert('İçe aktarma başarılı!');
                 } catch(err) {
                     alert('Hata! Dosya kontrolü yapın.'); console.error(err);
@@ -682,8 +769,65 @@
             toggleModal('fontModal');
         }
 
-        const DB_NAME = 'typer-assets-db';
-        const DB_VERSION = 1;
+        function openAssetManager() {
+            renderAssets();
+            toggleModal('assetModal');
+        }
+
+        function openAssetWithKind(kind) {
+            if (!activeStyleId) {
+                alert('Önce bir stil seçin veya yeni bir stil ekleyin.');
+                return;
+            }
+            const style = styles.find(s => s.id == activeStyleId);
+            if (!style) return;
+            if (kind === 'logo') {
+                style.logoAssetId = document.getElementById('styleLogoAsset').value || '';
+            } else {
+                style.patternAssetId = document.getElementById('stylePatternAsset').value || '';
+            }
+            saveData(); renderStyleGrid();
+            alert(kind === 'logo' ? 'Logo stil'e bağlandı.' : 'Desen stil'e bağlandı.');
+        }
+
+        function buildAssetButtons(asset) {
+            return `
+                <div class="asset-actions">
+                    <button style="background:#2a9d5a;" onclick="assignAssetToStyle('${asset.id}', 'logo')">Logo</button>
+                    <button style="background:#1d6cc5;" onclick="assignAssetToStyle('${asset.id}', 'pattern')">Desen</button>
+                    <button style="background:#d44;" onclick="deleteAsset('${asset.id}')">Sil</button>
+                </div>
+            `;
+        }
+
+        function assignAssetToStyle(assetId, kind) {
+            if (!activeStyleId) {
+                alert('Önce bir stil seçin.');
+                return;
+            }
+            const style = styles.find(s => s.id == activeStyleId);
+            if (!style) return;
+            if (kind === 'logo') style.logoAssetId = assetId; else style.patternAssetId = assetId;
+            saveData();
+            populateAssetSelects();
+            alert(kind === 'logo' ? 'Logo stil'e atandı.' : 'Desen stil'e atandı.');
+        }
+
+        async function cleanupExpiredAssets() {
+            const db = await openAssetDB();
+            return new Promise((resolve) => {
+                const tx = db.transaction('assets', 'readwrite');
+                const store = tx.objectStore('assets');
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    const items = request.result || [];
+                    const now = Date.now();
+                    const expired = items.filter(item => item.expiresAt && item.expiresAt <= now).map(item => item.id);
+                    expired.forEach(id => store.delete(id));
+                    tx.oncomplete = () => resolve();
+                };
+            });
+        }
 
         function openAssetDB() {
             return new Promise((resolve, reject) => {
@@ -700,27 +844,6 @@
             });
         }
 
-        async function cleanupExpiredAssets() {
-            const db = await openAssetDB();
-            return new Promise((resolve) => {
-                const tx = db.transaction('assets', 'readwrite');
-                const store = tx.objectStore('assets');
-                const index = store.index('expiresAt');
-                const request = index.openCursor();
-                let toDelete = [];
-                request.onsuccess = (event) => {
-                    const cursor = event.target.result;
-                    if (cursor) {
-                        if (cursor.value.expiresAt <= Date.now()) toDelete.push(cursor.value.id);
-                        cursor.continue();
-                    } else {
-                        toDelete.forEach(id => store.delete(id));
-                        resolve();
-                    }
-                };
-            });
-        }
-
         async function addAssetToDB(file) {
             const db = await openAssetDB();
             const reader = new FileReader();
@@ -732,6 +855,7 @@
                             id: crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random(),
                             name: file.name,
                             type: file.type,
+                            kind: 'custom',
                             dataUrl: reader.result,
                             createdAt: Date.now(),
                             expiresAt: Date.now() + (days * 24 * 60 * 60 * 1000)
@@ -754,15 +878,16 @@
             const store = tx.objectStore('assets');
             const request = store.getAll();
             request.onsuccess = () => {
-                const items = request.result || [];
+                const items = (request.result || []).map(item => ({...item, kind: item.kind || 'custom'}));
                 const listEl = document.getElementById('assetList');
                 listEl.innerHTML = items.map(item => `
                     <div class="asset-item">
                         <img src="${item.dataUrl}" alt="${item.name}">
                         <div style="margin-top:6px; font-size:10px;">${item.name}</div>
-                        <button onclick="deleteAsset('${item.id}')" style="width:100%; margin-top:5px; background:#d44; color:white; border:none; border-radius:2px; padding:6px; cursor:pointer;">Sil</button>
+                        ${buildAssetButtons(item)}
                     </div>
                 `).join('') || '<div style="color:#ccc;">Kayıtlı logo/desen yok.</div>';
+                setAssetListSync(items);
             };
         }
 
@@ -780,11 +905,7 @@
             }
             event.target.value = '';
             await renderAssets();
-        }
-
-        function openAssetManager() {
-            renderAssets();
-            toggleModal('assetModal');
+            populateAssetSelects();
         }
 
         function loadEffectsIntoForm(style) {
@@ -834,7 +955,7 @@
                 document.getElementById('grad3').value,
                 document.getElementById('grad4').value
             ];
-            saveData(); renderStyleGrid(); alert('Efektler stil'e uygulandı.');
+            saveData(); renderStyleGrid(); alert('Efektler stil\'e uygulandı.');
         }
 
         function openEffectsManager() {
@@ -853,11 +974,9 @@
             activeStyleId = localStorage.getItem('typer_active_style') || null;
             selectedLines = JSON.parse(localStorage.getItem('typer_selected_lines') || '[]');
             document.getElementById('ignoreTags').value = localStorage.getItem('ignoreTags') || DEFAULT_TAGS;
-            document.getElementById('input').value = localStorage.getItem('typer_main_text') || "";
+            document.getElementById('input').value = localStorage.getItem('typer_main_text') || '';
             document.getElementById('scaleInput').value = localStorage.getItem('typer_scale') || '100';
-            renderStyleGrid(); renderLines();
-            renderFontList();
-            renderAssets();
+            renderStyleGrid(); renderLines(); populateAssetSelects(); renderFontList(); renderAssets();
         }
     </script>
 </body>

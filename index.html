@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Typer for Photopea</title>
+  <style>
+    :root{color-scheme:dark;--bg:#171717;--panel:#242424;--line:#3d3d3d;--accent:#159447;--blue:#1683d8;--text:#f2f2f2;--muted:#bdbdbd}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:960px;margin:auto;padding:32px 18px 64px}header{padding:36px 24px;margin-bottom:24px;background:linear-gradient(135deg,#253b2d,#202b38);border:1px solid var(--line);border-radius:14px}h1,h2{line-height:1.2}h1{margin:0 0 8px;font-size:clamp(28px,6vw,48px)}h2{margin-top:34px}p,li{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.card{padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px}.card h3{margin-top:0}.button{display:inline-block;margin:6px 6px 6px 0;padding:10px 15px;border-radius:7px;background:var(--blue);color:#fff;text-decoration:none;font-weight:700}.button.green{background:var(--accent)}code,pre{background:#101010;border:1px solid var(--line);border-radius:7px}code{padding:2px 5px}pre{padding:14px;overflow:auto;color:#d7f5df}.notice{padding:12px 14px;border-left:4px solid #e0a72b;background:#352d19;color:#f0d68d;border-radius:5px}ol{padding-left:24px}.small{font-size:13px;color:#aaa}footer{margin-top:40px;color:#888;font-size:13px}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Typer for Photopea</h1>
+    <p>Manhwa ve manga metinlerini stillerle Photopea'ya yerleştirmek için Türkçe eklenti.</p>
+    <a class="button green" href="https://www.photopea.com/" target="_blank" rel="noopener">Photopea'yı Aç</a>
+    <a class="button" href="https://github.com/Asena-nim/plugin-typer" target="_blank" rel="noopener">GitHub Repo</a>
+  </header>
+
+  <section>
+    <h2>Özellikler</h2>
+    <div class="grid">
+      <div class="card"><h3>Metin yerleşimi</h3><p>Sırayla tek tek veya seçilen metinleri toplu olarak yerleştirme.</p></div>
+      <div class="card"><h3>Stiller</h3><p>Font, boyut, satır aralığı, önek, metin rengi ve kontur rengi.</p></div>
+      <div class="card"><h3>Font arama</h3><p>Kayıtlı fontlar arasında arama yapıp seçtiğiniz fontu stile aktarma.</p></div>
+      <div class="card"><h3>Logo ve desen</h3><p>Görselleri geçici olarak saklama, stile bağlama ve yöneticiden seçme.</p></div>
+      <div class="card"><h3>Efektler</h3><p>Opaklık, gölge, bulanıklık, dalga, warp, bükme ve degrade ayarları.</p></div>
+      <div class="card"><h3>Yedekleme</h3><p>Stilleri, font listesini ve ayarları JSON olarak dışa/içe aktarma.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Photopea'ya yükleme</h2>
+    <ol>
+      <li>Önce <a href="https://github.com/Asena-nim/plugin-typer" target="_blank" rel="noopener">Asena-nim/plugin-typer</a> reposunu açın.</li>
+      <li>Repo içinde <strong>Settings → Pages</strong> bölümüne gidin.</li>
+      <li><strong>Build and deployment</strong> altında <strong>Deploy from a branch</strong> seçin.</li>
+      <li>Branch olarak <code>main</code>, klasör olarak <code>/(root)</code> seçin ve <strong>Save</strong> düğmesine basın.</li>
+      <li>GitHub Pages adresiniz şu biçimde olur:<br><code>https://asena-nim.github.io/plugin-typer/</code></li>
+      <li>Photopea'yı açın. <strong>Window → Plugins</strong> paneline girin ve <strong>Add</strong> / <strong>Add Plugin</strong> seçeneğini kullanın.</li>
+      <li>Eklentinin GitHub Pages adresini URL olarak girin. Eğer Photopea sürümünüz URL eklemeyi desteklemiyorsa aşağıdaki yapılandırma JSON'unu kullanın.</li>
+    </ol>
+    <div class="notice"><strong>Not:</strong> GitHub Pages yayınlandıktan sonra ilk açılışta birkaç dakika gecikme olabilir. Photopea'da eski sürüm görünürse eklenti penceresini kapatıp tekrar açın veya sayfayı yenileyin.</div>
+  </section>
+
+  <section>
+    <h2>Photopea yapılandırma JSON'u</h2>
+    <p>Aşağıdaki JSON'daki URL'yi kendi Pages adresinizle aynı olacak şekilde kullanın:</p>
+    <pre>{
+  "environment": {
+    "plugins": [
+      {
+        "name": "Typer for Photopea",
+        "url": "https://asena-nim.github.io/plugin-typer/",
+        "width": 420,
+        "height": 720
+      }
+    ]
+  }
+}</pre>
+    <p class="small">Bazı Photopea sürümlerinde eklenti ekleme ekranı JSON dosyası yerine doğrudan URL isteyebilir. Bu durumda yalnızca Pages URL'sini kullanın.</p>
+  </section>
+
+  <section>
+    <h2>Kullanım</h2>
+    <ol>
+      <li>Metin alanına scripti yapıştırın.</li>
+      <li>Listeden bir satıra dokunarak seçin.</li>
+      <li>Stil kartlarından birini seçin.</li>
+      <li>Seçili alan varsa metin o alanın merkezine, yoksa belgenin merkezine yerleştirilir.</li>
+      <li>Birden fazla satır için satır seçim/toplu yerleşim akışını kullanın.</li>
+      <li>Font Photopea'da yüklü değilse Photopea varsayılan fonta geçebilir; fontun Photopea içinde ayrıca mevcut olması gerekir.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Sorun giderme</h2>
+    <div class="card">
+      <p><strong>Eklenti listede görünmüyor:</strong> Pages ayarının <code>main</code> ve <code>/(root)</code> için etkin olduğunu, URL'nin HTTPS ile açıldığını kontrol edin.</p>
+      <p><strong>Eski sürüm açılıyor:</strong> GitHub Pages dağıtımının tamamlanmasını bekleyin; ardından Photopea'yı ve eklenti panelini yeniden açın.</p>
+      <p><strong>Font uygulanmıyor:</strong> Eklentideki isim, Photopea'nın gerçek font adıyla eşleşmeli ve font Photopea oturumunda yüklenmiş olmalıdır.</p>
+      <p><strong>Logo/desen görünmüyor:</strong> Dosyayı eklenti yöneticisine tekrar ekleyin ve stile doğru türde bağlandığını kontrol edin. PDF önizlemesi tarayıcıya ve Photopea aktarımına bağlı olabilir; PNG/JPG/WebP daha güvenilir formattır.</p>
+      <p><strong>Veriler kayboldu:</strong> Tarayıcı site verilerini temizlemeyin. Stilleri ve ayarları düzenli olarak JSON dışa aktarın. IndexedDB kayıtları cihaz/tarayıcıya özeldir.</p>
+    </div>
+  </section>
+
+  <footer>Typer for Photopea · Asena-nim · <a href="https://github.com/Asena-nim/plugin-typer" target="_blank" rel="noopener">Kaynak kodu</a></footer>
+</main>
+</body>
+</html>

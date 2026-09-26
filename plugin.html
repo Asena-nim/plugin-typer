@@ -82,7 +82,7 @@
         </div>
         <button class="btn-action" onclick="openAddStyle()">➕</button>
         <button class="btn-action" onclick="toggleModal('settingsModal')">⚙</button>
-        <button id="shiftToggle" class="btn-action" onclick="toggleShiftMode()" title="Shift modu: toplu seçim için">Shift: ✕</button>
+        <button id="shiftToggle" class="btn-action" onclick="toggleShiftMode()" title="Shift modu: Toplu şekil/kement seçimi için">Shift: ✕</button>
         <button class="btn-soft" onclick="openFontManager()">Font Arama</button>
         <button class="btn-soft" onclick="openAssetManager()">Logo / Desen</button>
         <button class="btn-soft" onclick="openEffectsManager()">Efektler</button>
@@ -288,7 +288,7 @@
     </div>
 
     <div class="footer">
-        typer for photopea | v6.2 | <a href="https://typer.hayasaku.fr" target="_blank">typer.hayasaku.fr</a>
+        typer for photopea | v6.3 | <a href="https://typer.hayasaku.fr" target="_blank">typer.hayasaku.fr</a>
         <div style="font-size:9px; color:#888; margin-top:2px;"><a href="https://github.com/Asena-nim/plugin-typer" target="_blank">github.com/Asena-nim/plugin-typer</a></div>
     </div>
 
@@ -338,6 +338,29 @@
             const btn = document.getElementById('shiftToggle');
             btn.textContent = shiftMode ? 'Shift: ✓' : 'Shift: ✕';
             btn.className = shiftMode ? 'btn-action active' : 'btn-action';
+            syncPhotopeaSelectionTool(shiftMode);
+            localStorage.setItem('typer_shift_mode', shiftMode ? '1' : '0');
+        }
+
+        function syncPhotopeaSelectionTool(active) {
+            const script = `
+                try {
+                    if (typeof ToolType !== 'undefined') {
+                        if (${active}) {
+                            try { app.activeTool = ToolType.PATHSELECTION; } catch(e) {
+                                try { app.activeTool = ToolType.POLYGONALSELECTION; } catch(e) {
+                                    try { app.activeTool = ToolType.MAGICWAND; } catch(e) {}
+                                }
+                            }
+                        } else {
+                            try { app.activeTool = ToolType.MOVE; } catch(e) {
+                                try { app.activeTool = ToolType.PEN; } catch(e) {}
+                            }
+                        }
+                    }
+                } catch(e) {}
+            `;
+            window.parent.postMessage(script, '*');
         }
 
         function handleGlobalKeys(e) {
@@ -361,6 +384,7 @@
             localStorage.setItem('ignoreTags', document.getElementById('ignoreTags').value);
             localStorage.setItem('typer_selected_lines', JSON.stringify(selectedLines));
             localStorage.setItem('typer_font_library', JSON.stringify(fontLibrary));
+            localStorage.setItem('typer_shift_mode', shiftMode ? '1' : '0');
         }
 
         function saveSettings() { saveData(); renderLines(); }
@@ -589,7 +613,6 @@
             const assetUrl = JSON.stringify(asset.dataUrl);
             const insertMode = asset.kind === 'logo' ? 'logo' : 'pattern';
             const targetSize = insertMode === 'logo' ? 220 : 100;
-            const parentName = insertMode === 'logo' ? 'logoLayer' : 'patternLayer';
             return `
                 try {
                     var assetData = ${assetUrl};
@@ -607,12 +630,7 @@
                         }
                     }
                     assetDoc.close(SaveOptions.DONOTSAVECHANGES);
-                } catch(e) {
-                    try {
-                        var __msg = 'Asset fallback: ' + ${JSON.stringify(asset.name)};
-                        alert(__msg);
-                    } catch(err) {}
-                }
+                } catch(e) {}
             `;
         }
 
@@ -650,8 +668,8 @@
             const assetList = getAssetListSync();
             const logoAsset = assetList.find(x => x.id === style.logoAssetId);
             const patternAsset = assetList.find(x => x.id === style.patternAssetId);
-            if (logoAsset) assetScript += buildAssetPlacementScript(style, logoAsset);
-            if (patternAsset) assetScript += buildAssetPlacementScript(style, patternAsset);
+            if (logoAsset) assetScript += buildAssetPlacementScript(style, { ...logoAsset, kind: 'logo' });
+            if (patternAsset) assetScript += buildAssetPlacementScript(style, { ...patternAsset, kind: 'pattern' });
 
             const ppea = `
                 var doc = app.activeDocument;
@@ -702,7 +720,7 @@
                 styles,
                 ignoreLinePrefixes: document.getElementById('ignoreTags').value.split('\n'),
                 fontLibrary,
-                version: '6.2'
+                version: '6.3'
             };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
@@ -774,22 +792,6 @@
             toggleModal('assetModal');
         }
 
-        function openAssetWithKind(kind) {
-            if (!activeStyleId) {
-                alert('Önce bir stil seçin veya yeni bir stil ekleyin.');
-                return;
-            }
-            const style = styles.find(s => s.id == activeStyleId);
-            if (!style) return;
-            if (kind === 'logo') {
-                style.logoAssetId = document.getElementById('styleLogoAsset').value || '';
-            } else {
-                style.patternAssetId = document.getElementById('stylePatternAsset').value || '';
-            }
-            saveData(); renderStyleGrid();
-            alert(kind === 'logo' ? 'Logo stil'e bağlandı.' : 'Desen stil'e bağlandı.');
-        }
-
         function buildAssetButtons(asset) {
             return `
                 <div class="asset-actions">
@@ -810,7 +812,7 @@
             if (kind === 'logo') style.logoAssetId = assetId; else style.patternAssetId = assetId;
             saveData();
             populateAssetSelects();
-            alert(kind === 'logo' ? 'Logo stil'e atandı.' : 'Desen stil'e atandı.');
+            alert(kind === 'logo' ? 'Logo stil\'e atandı.' : 'Desen stil\'e atandı.');
         }
 
         async function cleanupExpiredAssets() {
@@ -973,9 +975,14 @@
             styles = JSON.parse(localStorage.getItem('typer_styles') || '[]');
             activeStyleId = localStorage.getItem('typer_active_style') || null;
             selectedLines = JSON.parse(localStorage.getItem('typer_selected_lines') || '[]');
+            shiftMode = localStorage.getItem('typer_shift_mode') === '1';
             document.getElementById('ignoreTags').value = localStorage.getItem('ignoreTags') || DEFAULT_TAGS;
             document.getElementById('input').value = localStorage.getItem('typer_main_text') || '';
             document.getElementById('scaleInput').value = localStorage.getItem('typer_scale') || '100';
+            const btn = document.getElementById('shiftToggle');
+            btn.textContent = shiftMode ? 'Shift: ✓' : 'Shift: ✕';
+            btn.className = shiftMode ? 'btn-action active' : 'btn-action';
+            syncPhotopeaSelectionTool(shiftMode);
             renderStyleGrid(); renderLines(); populateAssetSelects(); renderFontList(); renderAssets();
         }
     </script>
